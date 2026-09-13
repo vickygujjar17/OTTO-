@@ -4,7 +4,7 @@
 //|              OTTO EA — Institutional risk manager                |
 //+------------------------------------------------------------------+
 #property copyright "OTTO EA"
-#property version   "4.83"
+#property version   "5.00"
 
 #ifndef __OTTO_RISK_MANAGER__
 #define __OTTO_RISK_MANAGER__

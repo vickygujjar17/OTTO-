@@ -1,10 +1,10 @@
 //+------------------------------------------------------------------+
 //|                                              COttoTradeManager.mqh |
 //|       MODULE 6 - Dynamic Trade Management (exact Pine v4.70) + Pyr |
-//|            OTTO EA - Cut / Cost-BE / Lock3 / ATR Trail / Pyramiding |
+//|            OTTO EA - Cut / Cost-BE / ATR Trail / Pyramiding       |
 //+------------------------------------------------------------------+
 #property copyright "OTTO EA"
-#property version   "4.83"
+#property version   "5.00"
 
 #ifndef __OTTO_TRADE_MANAGER__
 #define __OTTO_TRADE_MANAGER__
@@ -128,10 +128,8 @@ public:
            }
          if(currentRR >= InpLock3RRR)
            {
-            double strictLock = primaryEntry + (3.0 * rrUnit);
             double dynamicTrail = high0 - (InpTrailATRMultiplier * atr);
-            double newSL = MathMax(strictLock, dynamicTrail);
-            if(newSL > desiredSL) desiredSL = newSL;
+            if(dynamicTrail > desiredSL) desiredSL = dynamicTrail;
            }
         }
       else // SHORT
@@ -148,49 +146,57 @@ public:
            }
          if(currentRR >= InpLock3RRR)
            {
-            double strictLock = primaryEntry - (3.0 * rrUnit);
             double dynamicTrail = low0 + (InpTrailATRMultiplier * atr);
-            double newSL = MathMin(strictLock, dynamicTrail);
-            if(newSL < desiredSL) desiredSL = newSL;
+            if(dynamicTrail < desiredSL) desiredSL = dynamicTrail;
            }
         }
 
       // --- PYRAMID (unified group stop) ---
-      // Tranche 2 at +1.0R: add 50%% tranche, move ALL stops to entry +/- 0.5R
-      if(currentRR >= InpCutRiskRR && m_orderManager.IsPyramidPending(2))
-        {
-         if(m_orderManager.AddPyramidTranche(2))
-             {
-              double g2 = primaryEntry + (dir==DIR_LONG ? (0.5*rrUnit) : -(0.5*rrUnit));
-              m_orderManager.ApplyUnifiedSL(g2);
-              m_orderManager.LogGroupStop("Tranche 2 (+1.0R) - Half-Risk Lock", g2);
-             }
-        }
-      // Tranche 3 at +2.0R: add 25%% tranche, move ALL stops to cost-covering BE
-      if(currentRR >= InpBreakEvenRR && m_orderManager.IsPyramidPending(3))
+      // Tranche 2 at +2.0R (InpBreakEvenRR): add the 0.12% tranche, then move the
+      // unified basket stop to exact Cost-Covering Breakeven (entry +/- beOffset,
+      // where beOffset already accounts for broker commission + swap friction).
+      if(currentRR >= InpBreakEvenRR && m_orderManager.IsPyramidPending(2))
         {
          double beOffset = CalcBasketFriction(dir==DIR_LONG);
          double groupBE = primaryEntry + (dir==DIR_LONG ? beOffset : -beOffset);
+         if(m_orderManager.AddPyramidTranche(2))
+             {
+              m_orderManager.ApplyUnifiedSL(groupBE);
+              m_orderManager.LogGroupStop("Tranche 2 (+2.0R) - Cost-Covering Breakeven", groupBE);
+             }
+        }
+      // Tranche 3 at +3.0R (InpTrailStartRR): add the 0.06% tranche and hand stop
+      // control to the Dynamic ATR Trail (no fixed 1:3 profit lock in v5.00).
+      if(currentRR >= InpTrailStartRR && m_orderManager.IsPyramidPending(3))
+        {
          if(m_orderManager.AddPyramidTranche(3))
               {
-               m_orderManager.ApplyUnifiedSL(groupBE);
-               m_orderManager.LogGroupStop("Tranche 3 (+2.0R) - Cost-Covering Breakeven", groupBE);
+               m_orderManager.ApplyUnifiedSL(desiredSL);
+               m_orderManager.LogGroupStop("Tranche 3 (+3.0R) - Dynamic ATR Trail", desiredSL);
               }
         }
       // Dynamic ATR Trail at +3.0R: apply SAME trailing SL to every ticket
       if(currentRR >= InpLock3RRR)
          m_orderManager.ApplyUnifiedSL(desiredSL);
 
-      // --- Push the primary stop to the broker (single path, unified) ---
+      // --- Push the primary stop to the broker ---
+      // When a multi-tranche basket is active, ApplyUnifiedSL() above already
+      // manages every basket ticket, so the single-ticket ModifySL() below is
+      // skipped to avoid a conflicting double-modification of the primary.
       double point = SymbolInfoDouble(m_symbol, SYMBOL_POINT);
-      if(MathAbs(desiredSL - trade.currentTrailSL) > point)
+      if(m_orderManager.GetBasketCount() <= 1)
         {
-         if(m_orderManager.ModifySL(trade.ticket, desiredSL))
+         if(MathAbs(desiredSL - trade.currentTrailSL) > point)
            {
-            m_orderManager.SetActiveTradeSL(desiredSL);
-            if(currentRR >= InpLock3RRR) m_trailActivations++;
+            if(m_orderManager.ModifySL(trade.ticket, desiredSL))
+              {
+               m_orderManager.SetActiveTradeSL(desiredSL);
+               if(currentRR >= InpLock3RRR) m_trailActivations++;
+              }
            }
         }
+      else if(currentRR >= InpLock3RRR)
+         m_trailActivations++;
       m_tradesManaged++;
      }
 

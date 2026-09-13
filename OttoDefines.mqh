@@ -212,16 +212,16 @@ input double   InpArmATR          = 0.0;      // Arming distance (ATR) — 0 = i
 input double   InpFixedRiskUSD    = 0.0;      // Fixed $ risk/trade (0 = use RiskPercent%)
 input bool     InpPyramidEnable   = true;     // Enable 3-tranche pyramiding (unified group SL)
 input double   InpRiskT1Pct       = 0.25;     // Tranche 1 risk % of equity
-input double   InpRiskT2Pct       = 0.12;     // Tranche 2 risk % of equity (at +1.0R)
-input double   InpRiskT3Pct       = 0.06;     // Tranche 3 risk % of equity (at +2.0R)
+input double   InpRiskT2Pct       = 0.12;     // Tranche 2 risk % of equity (at +2.0R)
+input double   InpRiskT3Pct       = 0.06;     // Tranche 3 risk % of equity (at +3.0R)
 
 input group "══════════════════════════════════════════════════"
 input group "  [5] EXIT & TRAILING (Pine half_risk_rr / be_rr / trail_rr)"
 input group "══════════════════════════════════════════════════"
 input double   InpCutRiskRR   = 1.0;         // Cut Risk in Half at R:R
 input double   InpBreakEvenRR = 2.0;         // Move to Breakeven at R:R
-input double   InpTrailStartRR = 3.0;        // Start Dynamic Trail at R:R (after 1:3 lock)
-input double   InpLock3RRR      = 3.0;        // Strict Lock SL at 1:3 (+3.0R) profit
+input double   InpTrailStartRR = 3.0;        // Tranche 3 / dynamic ATR trail activation R:R
+input double   InpLock3RRR      = 3.0;        // Dynamic ATR trail activation (+3.0R, no fixed lock)
 
 input group "══════════════════════════════════════════════════"
 input group "  [6] RISK MANAGEMENT"

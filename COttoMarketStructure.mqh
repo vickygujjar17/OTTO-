@@ -4,7 +4,7 @@
 //|              OTTO EA — exact ta.pivothigh/pivotlow port           |
 //+------------------------------------------------------------------+
 #property copyright "OTTO EA"
-#property version   "4.83"
+#property version   "5.00"
 
 #ifndef __OTTO_MARKET_STRUCTURE__
 #define __OTTO_MARKET_STRUCTURE__
