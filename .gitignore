@@ -10,6 +10,7 @@ _tools/_pristine_*/
 
 # --- transient tool scratch ----------------------------------------------
 _tools/commit_msg.txt
+_tools/commit_msg_*.txt
 
 # --- OS / editor cruft ---------------------------------------------------
 Thumbs.db

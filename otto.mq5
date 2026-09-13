@@ -150,7 +150,7 @@ int OnInit(void)
    Print("[INIT] Order Manager OK");
 
 // --- Trade Journal (human-readable .txt lifecycle log) ---
-   g_journal.Initialize(g_symbol);
+   g_journal.Initialize(g_symbol, &g_blockManager);
    g_orderManager.SetJournal(&g_journal);
 
 

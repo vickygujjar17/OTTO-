@@ -18,6 +18,7 @@ private:
    string            m_sessionID;
    int               m_handle;
    bool              m_ready;
+   COttoBlockManager *m_blockManager;   // optional, supplied for 2-arg Initialize()
 
    string            FmtPrice(double p)
      { return DoubleToString(p, (int)SymbolInfoInteger(_Symbol, SYMBOL_DIGITS)); }
@@ -47,27 +48,32 @@ private:
       return "#OTTO-" + m_symbol + "-T1";
      }
 
-   // Per-session file name built from sessionID #OTTO-SYM-YYYYMMDD-HHMMSS-BLKn
+   // Per-session file name: [Symbol]_[Timestamp]_BLK[Serial].txt
+   // m_sessionID is built upstream as  #OTTO-<SYM>-<YYYYMMDD>-<HHMMSS>-BLK<n>
    string            SessionFileName(void)
      {
       string sid = m_sessionID;
       if(StringFind(sid, "#") == 0) sid = StringSubstr(sid, 1);
       string parts[];
       int n = StringSplit(sid, '-', parts);
-      // Build a filename-safe name: <Symbol>_<date>_<time> and strip invalid chars
-      string nm = parts[1] + "_" + parts[2] + "_" + parts[3];
+      // parts == { OTTO, <SYM>, <YYYYMMDD>, <HHMMSS>, BLK<n> }
+      string sym  = (n >= 2) ? parts[1] : m_symbol;
+      string ts   = (n >= 4) ? (parts[2] + "_" + parts[3]) : "";
+      string blk  = (n >= 5) ? parts[4] : "BLK0";
+      string nm   = sym + "_" + ts + "_" + blk + ".txt";
+      // Strip anything the filesystem would reject
       int len = StringLen(nm);
       string safe = "";
       for(int k = 0; k < len; k++)
         {
          int ch = StringGetCharacter(nm, k);
-         if((ch>=48 && ch<=57) || (ch>=65 && ch<=90) || (ch>=97 && ch<=122) || ch==45 || ch==95)
+         if((ch>=48 && ch<=57) || (ch>=65 && ch<=90) || (ch>=97 && ch<=122) || ch==45 || ch==95 || ch==46)
             safe += ShortToString((ushort)ch);
          else
             safe += "_";
         }
-      if(StringLen(safe) > 0) return "Otto_Trade_" + safe + ".txt";
-      return "Otto_Trade_" + m_symbol + ".txt";
+      if(StringLen(safe) > 0) return safe;
+      return m_symbol + "_" + TimeToString(TimeCurrent(), TIME_DATE|TIME_SECONDS) + "_BLK0.txt";
      }
 
    bool              OpenWrite(void)
@@ -93,9 +99,10 @@ private:
         { FileClose(m_handle); m_handle = INVALID_HANDLE; }
      }
 
-   int               ReadLines(string &lines[])
+   int               ReadLines(string &lines[], string fname = "")
      {
-      int fh = FileOpen(SessionFileName(), FILE_TXT | FILE_READ | FILE_SHARE_READ);
+      if(fname == "") fname = SessionFileName();
+      int fh = FileOpen(fname, FILE_TXT | FILE_READ | FILE_SHARE_READ);
       if(fh == INVALID_HANDLE) return 0;
       string tmp[]; int c = 0;
       while(!FileIsEnding(fh))
@@ -110,12 +117,14 @@ private:
       return c;
      }
 
-   // Emails the whole session file (line[0] = subject)
+   // Emails the whole session file (line[0] = subject).
+   // After a cancellation rename, the payload lives under the CANCELLED_ prefix.
    void              SendMailFromFile(void)
      {
       if(!m_ready) return;
       string lines[];
-      int c = ReadLines(lines);
+      int c = ReadLines(lines, "CANCELLED_" + SessionFileName());
+      if(c == 0) c = ReadLines(lines);
       if(c == 0) return;
       string subject = lines[0];
       string body = "";
@@ -127,10 +136,15 @@ private:
 
 public:
                      COttoJournal(void)
-     { m_symbol=""; m_sessionID=""; m_handle=INVALID_HANDLE; m_ready=false; }
+     { m_symbol=""; m_sessionID=""; m_handle=INVALID_HANDLE; m_ready=false; m_blockManager=NULL; }
                      ~COttoJournal(void) { CloseHandle(); }
 
-   bool              Initialize(string symbol) { m_symbol = symbol; return true; }
+   bool              Initialize(string symbol, COttoBlockManager *bm = NULL)
+     {
+      m_symbol = symbol;
+      m_blockManager = bm;
+      return true;
+     }
    void              Close(void) { CloseHandle(); }
    void              SetSessionID(string id) { m_sessionID = id; m_ready = (m_sessionID != ""); }
    string            GetSessionID(void) const { return m_sessionID; }
@@ -215,33 +229,40 @@ public:
       SendMailFromFile();
      }
 
+   // Vetoed / cancelled before fill: append the reason to the active log,
+   // close the handle, then rename on disk so the historical setup data is
+   // preserved under a clear CANCELLED_ prefix.
    void              LogCancellation(string reason)
      {
       if(!m_ready) return;
-      string lines[];
-      int c = ReadLines(lines);
-      if(c == 0)
+
+      string fname = SessionFileName();
+
+      // 1) Append the cancellation reason to the active text log
+      if(!OpenAppend())
         {
-         if(!OpenWrite()) return;
-         W("SUBJECT: [CANCELLED: " + reason + "] Session " + m_sessionID);
-         W("[CANCELLED] Reason: " + reason + " | " + TimeToString(TimeCurrent()));
-         CloseHandle();
+         if(!OpenWrite()) return;   // no prior file -> create it
+        }
+      W("================================================================");
+      W("[CANCELLED] Reason: " + reason + " | " + TimeToString(TimeCurrent()));
+      W("================================================================");
+
+      // 2) Close the file handle so the OS releases the file lock
+      CloseHandle();
+
+      // 3) Rename on disk, preserving the setup history
+      string cancelledName = "CANCELLED_" + fname;
+      FileDelete(cancelledName);                       // clear any stale target
+      if(FileMove(fname, 0, cancelledName, FILE_REWRITE))
+        {
+         if(EnableLogging) Print("[Journal] CANCELLED -> ", cancelledName);
         }
       else
         {
-         lines[0] = "SUBJECT: [CANCELLED: " + reason + "] Session " + m_sessionID + " (" + TimeToString(TimeCurrent()) + ")";
-         int n = c + 3;
-         ArrayResize(lines, n);
-         lines[c]   = "================================================================";
-         lines[c+1] = "[CANCELLED] Reason: " + reason + " | " + TimeToString(TimeCurrent());
-         lines[c+2] = "================================================================";
-         int fh = FileOpen(SessionFileName(), FILE_TXT | FILE_WRITE | FILE_SHARE_READ);
-         if(fh != INVALID_HANDLE)
-           {
-            for(int i = 0; i < n; i++) FileWriteString(fh, lines[i] + "\n");
-            FileFlush(fh); FileClose(fh);
-           }
+         int err = GetLastError();
+         Print("[Journal] FileMove FAILED (err=", err, ") for ", fname, " -> ", cancelledName);
         }
+
       SendMailFromFile();
      }
   };
