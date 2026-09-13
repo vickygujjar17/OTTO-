@@ -1,0 +1,7 @@
+# MQL5 sources are CRLF in MetaEditor -- keep them that way on every checkout.
+*.mq5 text eol=crlf
+*.mqh text eol=crlf
+
+# Do not normalise build artifacts at all.
+*.ex5 binary
+*.ex4 binary

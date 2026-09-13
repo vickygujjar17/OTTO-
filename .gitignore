@@ -1,0 +1,15 @@
+# --- MQL5 build artifacts (never commit) ---------------------------------
+*.ex5
+*.ex4
+*.log
+compile.log
+otto_build/
+
+# --- local pristine snapshots kept under _tools --------------------------
+_tools/_pristine_*/
+
+# --- OS / editor cruft ---------------------------------------------------
+Thumbs.db
+desktop.ini
+.vscode/
+*.tmp
