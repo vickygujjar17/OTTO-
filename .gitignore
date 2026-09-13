@@ -8,6 +8,9 @@ otto_build/
 # --- local pristine snapshots kept under _tools --------------------------
 _tools/_pristine_*/
 
+# --- transient tool scratch ----------------------------------------------
+_tools/commit_msg.txt
+
 # --- OS / editor cruft ---------------------------------------------------
 Thumbs.db
 desktop.ini
