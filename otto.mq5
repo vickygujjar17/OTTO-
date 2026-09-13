@@ -5,11 +5,11 @@
 //|                                    Institutional / Real-Money    |
 //+------------------------------------------------------------------+
 #property copyright "OTTO EA"
-#property version   "4.83"
+#property version   "5.00"
 #property description "OTTO EA â€” Exact port of Pine v4.70 (Wick1+Wick2)"
 #property description "Separation | Sizing | Front-Run | Near-Miss | Stale vetoes"
 #property description "Modules: News Shield | Risk | Block Manager | Order Mgmt | Trail"
-#property link      "https://github.com/otto"
+#property link      "https://github.com/vickygujjar17/OTTO-.git"
 
 //+------------------------------------------------------------------+
 //| Includes                                                          |
@@ -80,7 +80,7 @@ int OnInit(void)
    g_symbol = _Symbol;
 
    Print("==============================================================");
-   Print("  OTTO EA v4.83 â€” Pine v4.70 Master Build â€” INITIALIZING");
+   Print("  OTTO EA v5.00 — Pine v5.00 Master Build — INITIALIZING");
    Print("  Symbol: ", g_symbol, " | Magic: ", MagicNumber);
    Print("==============================================================");
 
@@ -165,7 +165,6 @@ int OnInit(void)
    // --- Prop firm safety state ---
    g_initialBalance   = AccountInfoDouble(ACCOUNT_BALANCE);
    g_midnightBalance  = g_initialBalance;
-   g_dailyEquityHigh  = AccountInfoDouble(ACCOUNT_EQUITY);
    g_dailyDD_Paused   = false;
    g_totalDD_Halted   = false;
    MqlDateTime dt;
@@ -287,7 +286,6 @@ void CheckDailyReset(void)
    if(todayMidnight != g_lastMidnightCheck)
      {
       g_midnightBalance = AccountInfoDouble(ACCOUNT_BALANCE);
-      g_dailyEquityHigh = AccountInfoDouble(ACCOUNT_EQUITY);
       g_lastMidnightCheck = todayMidnight;
       if(g_dailyDD_Paused)
         {
@@ -419,9 +417,11 @@ void OnTick(void)
      }
 
    // ================================================================
-   // STEP 1: Update News Filter (real calendar blackout)
+   // STEP 1: News Filter — DISABLED in v5.00
+   // EnableNewsFilter defaults to false and the calendar update call is
+   // bypassed entirely so no MQL5 economic-calendar queries are made.
    // ================================================================
-   g_newsFilter.Update();
+   // g_newsFilter.Update();
 
    // ================================================================
    // STEP 2: NEW BAR â€” block formation + veto funnel (bar-close logic)
@@ -513,9 +513,6 @@ void LogStatus(void)
   }
 
 //+------------------------------------------------------------------+
-//| OnChartEvent â€” reserved                                          |
-//+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
 //| Writes a line to the human-readable .txt trade journal            |
 //+------------------------------------------------------------------+
 void JournalWrite(string event, string details)
@@ -574,9 +571,6 @@ void JournalCheckEvents(void)
      JournalWrite("TRADE CLOSED", "");
    g_lastHadTrade = nowActive;
   }
-void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
-  {
-  }
 
 //+------------------------------------------------------------------+
 //| OnTrade â€” re-sync active trade state on trade events             |
@@ -586,12 +580,3 @@ void OnTrade(void)
    if(g_initialized)
       g_orderManager.SyncActiveTrade();
   }
-
-//+------------------------------------------------------------------+
-//| OnTimer â€” reserved heartbeat                                      |
-//+------------------------------------------------------------------+
-void OnTimer(void)
-  {
-  }
-
-double   g_dailyEquityHigh     = 0;

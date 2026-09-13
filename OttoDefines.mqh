@@ -1,10 +1,10 @@
 //+------------------------------------------------------------------+
 //|                                                   OttoDefines.mqh |
-//|                 OTTO EA v4.83 — Master Build Central Definitions  |
+//|                 OTTO EA v5.00 — Master Build Central Definitions  |
 //|         Exact MQL5 port of Pine Script "prop_guard_tester.pine"   |
 //+------------------------------------------------------------------+
 #property copyright "OTTO EA"
-#property version   "4.83"
+#property version   "5.00"
 #property description "OTTO — Pine v4.70 Master Build (Wick1+Wick2 | Separation | Front-Run | Near-Miss | Stale Vetoes)"
 
 #ifndef __OTTO_DEFINES__
@@ -133,9 +133,6 @@ struct SSniperBlock
    int               anchorDay;        // market-day of the anchor
    double            anchorPrice;      // closest wick price
    int               anchorId;         // unique anchor counter
-
-   // --- Visual object (gated by EnableVisuals) ---
-   string            objectName;       // OBJ name for the zone rectangle
   };
 
 // Active-tracked position (mirrors Pine active_* variables)
@@ -176,7 +173,6 @@ input group "══════════════════════�
 input int      MagicNumber       = 20240624;   // Unique EA Magic Number
 input string   TradeComment      = "OTTO";     // Trade comment prefix
 input bool     EnableLogging     = true;       // Detailed console/file logging
-input bool     EnableVisuals     = true;       // Draw S/R zone boxes on chart
 input bool     EnableJournal     = true;       // Write human-readable .txt trade journal
 
 input group "══════════════════════════════════════════════════"
@@ -215,8 +211,6 @@ input ENUM_ENTRY_STYLE InpEntryStyle = ENTRY_MIDPOINT;  // Midpoint or Front Edg
 input double   InpArmATR          = 0.0;      // Arming distance (ATR) — 0 = instant arm
 input double   InpFixedRiskUSD    = 0.0;      // Fixed $ risk/trade (0 = use RiskPercent%)
 input bool     InpPyramidEnable   = true;     // Enable 3-tranche pyramiding (unified group SL)
-input double   InpPyramidT2Factor = 0.50;     // [legacy] Tranche 2 size factor (superseded by risk %)
-input double   InpPyramidT3Factor = 0.25;     // [legacy] Tranche 3 size factor (superseded by risk %)
 input double   InpRiskT1Pct       = 0.25;     // Tranche 1 risk % of equity
 input double   InpRiskT2Pct       = 0.12;     // Tranche 2 risk % of equity (at +1.0R)
 input double   InpRiskT3Pct       = 0.06;     // Tranche 3 risk % of equity (at +2.0R)
@@ -241,7 +235,7 @@ input int      MaxSpreadPoints    = 50;       // Max spread (points) for new ent
 input group "══════════════════════════════════════════════════"
 input group "  [7] NEWS SHIELD (real + simulated per Pine)"
 input group "══════════════════════════════════════════════════"
-input bool     EnableNewsFilter    = true;    // Real calendar blackout
+input bool     EnableNewsFilter    = false;   // Real calendar blackout (disabled in v5.00)
 input int      NewsMinutesBefore   = 5;       // Minutes before high-impact event
 input int      NewsMinutesAfter    = 5;       // Minutes after high-impact event
 input bool     InpSimNewsShield    = false;   // TRUE = absolute lockdown (Pine sim)

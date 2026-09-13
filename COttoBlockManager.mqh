@@ -4,7 +4,7 @@
 //|              OTTO EA — exact Pine v4.70 block logic port          |
 //+------------------------------------------------------------------+
 #property copyright "OTTO EA"
-#property version   "4.83"
+#property version   "5.00"
 
 #ifndef __OTTO_BLOCK_MANAGER__
 #define __OTTO_BLOCK_MANAGER__
@@ -145,33 +145,6 @@ private:
      }
 
    //+------------------------------------------------------------------+
-   //| Visual: draws/refreshes the zone rectangle (gated by Enable)    |
-   //+------------------------------------------------------------------+
-   void                    UpdateVisual(int index)
-     {
-      // NOTE: chart-object drawing (OBJ_RECTANGLE) requires the OBJPROP_*
-      // resolution which this MetaTrader 5 build reports as undeclared for
-      // OBJPROP_TIME1/OBJPROP_PRICE1. Visuals are therefore kept as a
-      // lightweight no-op while the EnableVisuals flag remains available.
-      // (The original TrendSniper EA also left visuals as a non-functional
-      // toggle.) All block-state logic is unaffected.
-      if(!EnableVisuals) return;
-      if(index < 0 || index >= m_blockCount) return;
-      // objectName is retained on the struct for future visual use.
-      if(m_blocks[index].objectName == "")
-         m_blocks[index].objectName = StringFormat("OTTO_BLK_%d", m_blocks[index].serial);
-     }
-
-   //+------------------------------------------------------------------+
-   //| Visual: deletes the zone rectangle (called on block removal)    |
-   //+------------------------------------------------------------------+
-   void                    DeleteVisual(const SSniperBlock &b)
-     {
-      if(b.objectName != "" && ObjectFind(0, b.objectName) >= 0)
-         ObjectDelete(0, b.objectName);
-     }
-
-   //+------------------------------------------------------------------+
    //| Adds a block to the array (memory-safe, respects MAX_BLOCKS)    |
    //+------------------------------------------------------------------+
    void                    AddBlock(const SSniperBlock &src)
@@ -185,7 +158,6 @@ private:
       ArrayResize(m_blocks, m_blockCount + 1, MAX_BLOCKS);
       m_blocks[m_blockCount] = src;
       m_blockCount++;
-      UpdateVisual(m_blockCount - 1);
      }
 
    //+------------------------------------------------------------------+
@@ -200,7 +172,6 @@ private:
          m_blocks[index].pendingOrderCancel = true;
          return false; // defer — OrderManager must cancel the ticket first
         }
-      DeleteVisual(m_blocks[index]);
       for(int i = index; i < m_blockCount - 1; i++)
          m_blocks[i] = m_blocks[i + 1];
       m_blockCount--;
@@ -257,7 +228,6 @@ private:
                   nb.creationBarSerial = (int)Bars(m_symbol, PERIOD_CURRENT);
                   nb.serial       = ++m_blockSerialCounter;
                   nb.tradeId      = StringFormat("OTTO_RES_%d", nb.serial);
-                  nb.objectName   = "";
 
                   // --- v4.70 SEPARATION VETO ---
                   // A separation candle: at least one candle between W1 and
@@ -338,7 +308,6 @@ private:
                   nb.creationBarSerial = (int)Bars(m_symbol, PERIOD_CURRENT);
                   nb.serial       = ++m_blockSerialCounter;
                   nb.tradeId      = StringFormat("OTTO_SUP_%d", nb.serial);
-                  nb.objectName   = "";
 
                   // --- SEPARATION VETO (support mirror) ---
                   // A candle between W1 and W2 whose LOW is strictly above
@@ -561,9 +530,6 @@ private:
 
          // --- Persist block mutations made during this funnel pass ---
          m_blocks[i] = b;
-
-         // --- Visual refresh ---
-         UpdateVisual(i);
         }
      }
 
@@ -643,8 +609,6 @@ public:
    //+------------------------------------------------------------------+
                     ~COttoBlockManager(void)
      {
-      for(int i = 0; i < m_blockCount; i++)
-         DeleteVisual(m_blocks[i]);
       ArrayFree(m_blocks);
       if(m_atrHandle != INVALID_HANDLE)
          IndicatorRelease(m_atrHandle);
@@ -759,7 +723,6 @@ public:
                      nb.creationBarSerial = (int)Bars(m_symbol, PERIOD_CURRENT);
                      nb.serial       = ++m_blockSerialCounter;
                      nb.tradeId      = StringFormat("OTTO_RES_%d", nb.serial);
-                     nb.objectName   = "";
 
                      // --- Separation Veto ---
                      bool hasSeparation = false;
@@ -836,7 +799,6 @@ public:
                      nb.creationBarSerial = (int)Bars(m_symbol, PERIOD_CURRENT);
                      nb.serial       = ++m_blockSerialCounter;
                      nb.tradeId      = StringFormat("OTTO_SUP_%d", nb.serial);
-                     nb.objectName   = "";
 
                      // --- Separation Veto (support mirror) ---
                      bool hasSeparation = false;
