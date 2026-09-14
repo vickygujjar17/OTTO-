@@ -15,15 +15,15 @@
 //| Includes                                                          |
 //+------------------------------------------------------------------+
 #include <Trade\Trade.mqh>
-#include "../Include/Otto/OttoDefines.mqh"
-#include "../Include/Otto/COttoNewsFilter.mqh"
-#include "../Include/Otto/COttoRiskManager.mqh"
-#include "../Include/Otto/COttoMarketStructure.mqh"
-#include "../Include/Otto/COttoBlockManager.mqh"
-#include "../Include/Otto/COttoOrderManager.mqh"
-#include "../Include/Otto/COttoCorrelationFilter.mqh"
-#include "../Include/Otto/COttoTradeManager.mqh"
-#include "../Include/Otto/COttoJournal.mqh"
+#include <Otto/OttoDefines.mqh>
+#include <Otto/COttoNewsFilter.mqh>
+#include <Otto/COttoRiskManager.mqh>
+#include <Otto/COttoMarketStructure.mqh>
+#include <Otto/COttoBlockManager.mqh>
+#include <Otto/COttoOrderManager.mqh>
+#include <Otto/COttoCorrelationFilter.mqh>
+#include <Otto/COttoTradeManager.mqh>
+#include <Otto/COttoJournal.mqh>
 
 //+------------------------------------------------------------------+
 //| Global Module Instances                                           |

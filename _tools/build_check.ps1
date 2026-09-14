@@ -41,6 +41,18 @@ New-Item -ItemType Directory -Force -Path $experts, $includes | Out-Null
 Copy-Item (Join-Path $Source "*.mqh") $includes -Force
 Copy-Item (Join-Path $Source "*.mq5") $experts  -Force
 
+# --- Keep the live terminal's Include\Otto in sync ------------------------
+# Angle-bracket includes (<Otto\*.mqh>) resolve against the terminal's real
+# MQL5\Include folder, NOT this staging tree. If the deployed headers drift
+# out of date the compile silently links stale modules, so mirror them here.
+$mt5Include = Join-Path $env:APPDATA "MetaQuotes\Terminal\10CE948A1DFC9A8C27E56E827008EBD4\MQL5\Include\Otto"
+if (Test-Path (Split-Path $mt5Include -Parent)) {
+    if (-not (Test-Path $mt5Include)) { New-Item -ItemType Directory -Force -Path $mt5Include | Out-Null }
+    Copy-Item (Join-Path $Source "*.mqh") $mt5Include -Force
+    Write-Host "synced headers -> $mt5Include"
+    Write-Host ""
+}
+
 # Remove stale build artifacts so we never compile a cached binary
 Get-ChildItem $buildRoot -Recurse -Include *.ex5, *.log -File -ErrorAction SilentlyContinue |
     Remove-Item -Force -ErrorAction SilentlyContinue
